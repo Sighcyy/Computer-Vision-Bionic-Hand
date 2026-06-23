@@ -1,15 +1,16 @@
 # Computer Vision Bionic Hand
 
-A real-time prosthetic hand that mirrors your finger movements using computer vision. A webcam tracks your hand with MediaPipe, maps each finger's curl angle to a servo, and streams those angles to an ESP32 over USB — all at up to 30 Hz.
-<img width="754" height="544" alt="image" src="https://github.com/user-attachments/assets/1109187b-d5fc-4e3d-9f74-d5dac1d99240" />
+A real-time bionic hand that mimics your finger movements using computer vision. The mechanical hand is fully 3D printed with a tendon-driven finger system, actuated by 5 SG90 servos and controlled by an ESP32 that receives live finger angles from a MediaPipe hand tracker running on a PC.
 
+<img width="754" height="544" alt="image" src="https://github.com/user-attachments/assets/3fefaef2-0e09-47c2-b047-8215830e974d" />
+
+---
 
 ## How It Works
 
-1. A Python script on your PC captures webcam frames and runs MediaPipe hand detection
-2. For each of the 5 fingers, it computes a curl angle (0° = open, 180° = fully curled) using the ratio of landmark distances
-3. It packages all 5 angles into a compact serial packet and sends it to the ESP32
-4. The ESP32 reads the packet, clamps the angles for safety, and drives each servo via PWM
+The hand is built around a **tendon-and-return mechanism** — the same principle used in real prosthetic hands. Fishing line runs from each servo horn, through guides along the finger, and anchors at the fingertip. When a servo rotates, it pulls the tendon and curls the finger. Rubber bands on the dorsal (back) side act as passive return springs, extending the finger when the servo releases tension.
+
+On the sensing side, a Python script on your PC uses MediaPipe to track 21 landmarks on your hand in real time. For each finger it computes a curl angle from the ratio of joint distances, then streams all 5 angles to the ESP32 over USB serial at up to 30 Hz. The ESP32 converts each angle to a PWM duty cycle and drives the corresponding servo instantly.
 
 ---
 
@@ -17,31 +18,79 @@ A real-time prosthetic hand that mirrors your finger movements using computer vi
 
 ```
 Computer-Vision-Bionic-Hand/
-├── CAD/                  # SolidWorks / STL files for the hand structure
-├── Electronics/          # Schematic and wiring diagram files
+├── CAD/                  # SolidWorks / STL files for all printed parts
+├── Electronics/          # Schematic and wiring diagram
 ├── Software/
 │   ├── hand_tracker.py   # PC-side: camera, MediaPipe, serial output
 │   └── esp32_servo.py    # ESP32-side: serial input, servo PWM control
-├── BOM.csv               # Full bill of materials
-├── References.md         # Finger dimensions and CAD reference specs
+├── BOM.csv               # Full bill of materials with links
+├── References.md         # Finger dimension sources and design notes
 └── README.md
 ```
 
 ---
 
-## Hardware
+## Mechanical Design
+
+### Finger Architecture
+
+Each finger is made of three printed phalanx segments (fingertip, middle, and base) connected by pin joints. The joints use 2.5 mm stainless steel rod sections as axles, pressed through 2.7 mm clearance holes in the hinge ears. This gives smooth, low-friction rotation while keeping the joint tight enough to hold position under load.
+
+<!-- [INSERT CAD RENDER OR EXPLODED VIEW HERE] -->
+
+| Segment | Length x Width x Depth |
+|---|---|
+| Fingertip phalanx | 21.8 mm x 14.7 mm x 16.0 mm |
+| Middle phalanx | 26.7 mm x 14.7 mm x 16.0 mm |
+| Base phalanx | 30.0 mm x 14.7 mm x 16.0 mm |
+| Palm | 120.0 mm x 80.0 mm x 40.0 mm |
+
+Fillets are 7 mm on the bottom face and 5 mm on the top to reduce stress concentrations at the joint roots and improve print layer adhesion in those areas.
+
+### Tendon Routing
+
+Clear fishing line is used as the tendon for each finger. It runs from a small anchor point on the servo horn, along the palmar (front) face of the finger through printed routing guides, and ties off at the distal phalanx. Keeping the line close to the bone centerline minimizes lateral forces on the joints during actuation.
+
+### Return Mechanism
+
+Rubber bands are stretched across the dorsal (back) side of each finger between the fingertip and the base phalanx. They provide passive extension — when the servo releases tension on the tendon, the rubber band pulls the finger back to its open position. Band tension needs to be matched to servo torque; too tight and the servo struggles to close, too loose and the finger won't fully extend.
+
+### 3D Printing Notes
+
+All parts are printed in PLA. Recommended settings:
+
+| Setting | Value |
+|---|---|
+| Layer height | 0.2 mm |
+| Infill | 40% or higher for phalanges |
+| Supports | Required for hinge ears and palm servo mounts |
+| Material | PLA 1.75 mm |
+
+Print the phalanges with the hinge ears oriented vertically to maximize layer strength across the joint pin holes.
+
+---
+
+## Electronics
 
 ### Bill of Materials
 
-See [`BOM.csv`](BOM.csv) for the full list. Key components:
+Full cost breakdown is in [`BOM.csv`](BOM.csv). Total build cost: **$62.73**
 
-| Component | Qty |
-|---|---|
-| ESP32-WROOM-32 | 1 |
-| Servo motor (SG90 or MG90S) | 5 |
-| Breadboard (half-size or full) | 1 |
-| USB cable (data-capable) | 1 |
-| Jumper wires | as needed |
+| Component | Vendor | Cost | Link |
+|---|---|---|---|
+| ESP32-WROOM-32 | Amazon | $16.79 | [Buy](https://www.amazon.com/ESP-WROOM-32-Development-Microcontroller-Integrated-Compatible/dp/B08D5ZD528) |
+| SG90 Micro Servo Motor (x5) | Amazon | $7.99 | [Buy](https://www.amazon.com/Dorhea-Arduino-Helicopter-Airplane-Walking/dp/B07Q6JGWNV) |
+| MB102 Breadboard Power Supply Module | Amazon | $8.99 | [Buy](https://www.amazon.com/ALAMSCN-Solderless-Breadboard-Battery-Arduino/dp/B08JYPMCZY) |
+| PLA 1.75mm 3D Printer Filament | Amazon | $9.99 | [Buy](https://www.amazon.com/Filament-Dimensional-Accuracy-Clogging-Cardboard/dp/B0DCJR8JTG) |
+| 304 Stainless Steel Round Rods (5 pcs) | Amazon | $6.99 | [Buy](https://www.amazon.com/MECCANIXITY-Stainless-Steel-Round-Various/dp/B0CZRWNXJ1) |
+| Rubber Bands (assorted) | Amazon | $7.99 | [Buy](https://www.amazon.com/Rubber-Assorted-Elastic-Tactical-supplies/dp/B0DNZ8GTGF) |
+| Clear Fishing Line | Amazon | $3.99 | [Buy](https://www.amazon.com/Switches-Mechanical-Keyboards-Mounted-MX1AE1NN/dp/B09ZST8WMF) |
+
+### Power Supply
+
+The MB102 breadboard power supply module is critical to stable servo operation. Five SG90 servos can draw over 500 mA combined when under load — well beyond what the ESP32's onboard regulator or a USB port alone can reliably supply. The MB102 plugs directly into the breadboard's power rails and accepts 7–12V DC input (or USB) and outputs a clean regulated 5V line.
+
+**Before wiring anything:** set the MB102's voltage selection jumper to 5V. Leaving it at 3.3V will underpower the servos and cause erratic movement or no movement at all.
 
 ### Pin Mapping
 
@@ -55,26 +104,7 @@ See [`BOM.csv`](BOM.csv) for the full list. Key components:
 
 ### Wiring
 
-Each servo connects with three wires: signal (orange) to the GPIO pin, power (red) to 5V, and ground (black) to GND. All grounds share a common rail on the breadboard.
-
-<!-- [INSERT WIRING DIAGRAM PHOTO OR SCHEMATIC SCREENSHOT HERE — from the Electronics/ folder] -->
-
----
-
-## CAD
-
-The hand structure was custom-designed with dimensions taken from average human finger measurements. All parts are 3D printable.
-
-| Section | Dimensions (L x W x D) |
-|---|---|
-| Fingertip | 21.8 mm x 14.7 mm x 16.0 mm |
-| Middle phalanx | 26.7 mm x 14.7 mm x 16.0 mm |
-| Base phalanx | 30.0 mm x 14.7 mm x 16.0 mm |
-| Palm | 120.0 mm x 80.0 mm x 40.0 mm |
-
-Joint holes are 2.7 mm diameter — use a 2.5 mm axle for a clean fit. Fillets are 7 mm on the bottom face and 5 mm on the top.
-
-<!-- [INSERT CAD RENDER OR PRINTED PART PHOTO HERE] -->
+Each servo has three wires: the signal wire (orange) connects to the assigned ESP32 GPIO pin, the power wire (red) connects to the MB102's 5V rail, and the ground wire (brown/black) connects to the shared GND rail on the breadboard. The ESP32 ground must also connect to this same GND rail so the logic and power grounds are referenced together — without a common ground, the PWM signals will be unreliable.
 
 ---
 
@@ -117,29 +147,22 @@ Replace `COM3` with your actual port (`/dev/ttyUSB0` on Linux/Mac). Press `Q` to
 
 ## Calibration
 
-If a servo hits its physical stop before reaching 0° or 180°, tune these constants in `esp32_servo.py`:
+### Servo endpoints
+
+If a servo pulls the tendon too far and jams the joint, or doesn't pull far enough to fully curl the finger, adjust the PWM duty cycle limits in `esp32_servo.py`:
 
 ```python
 DUTY_MIN = 40    # raise this to shift the 0° endpoint up
 DUTY_MAX = 115   # lower this to shift the 180° endpoint down
 ```
 
-The send rate can also be adjusted in `hand_tracker.py`:
+### Tendon tension
 
-```python
-SEND_HZ = 30    # reduce if you see serial overrun errors
-```
+Anchor the fishing line with the finger in its natural open position and the servo at 90°. This ensures the servo has equal range in both directions and the tendon doesn't go slack or over-tension at the extremes.
 
----
+### Rubber band stiffness
 
-## Dependencies
-
-| Library | Where | Purpose |
-|---|---|---|
-| `opencv-python` | PC | Webcam capture and display |
-| `mediapipe` | PC | 21-point hand landmark detection |
-| `pyserial` | PC | Serial communication to ESP32 |
-| `machine` (built-in) | ESP32 MicroPython | PWM servo control |
+If the finger lags behind the servo on the return stroke, the rubber band is too loose — add a second band or use a stiffer one. If the servo struggles to close against the band, switch to a lighter band or shorten the anchor point.
 
 ---
 
@@ -151,10 +174,11 @@ See [`References.md`](References.md) for finger dimension sources and design not
 
 ## Future Ideas
 
-- Wireless control over WiFi using UDP instead of serial
-- Flex sensor feedback for force awareness
-- Gesture macros to trigger preset hand positions
-- Dual-hand tracking support
+- Wireless control over WiFi using UDP to remove the USB tether
+- Flex sensors on the arm for force feedback
+- Stronger MG90S metal-gear servos for higher grip force
+- Wrist rotation as a 6th axis
+- Gesture macros to lock preset hand positions
 
 ---
 
