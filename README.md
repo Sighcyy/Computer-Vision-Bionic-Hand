@@ -1,16 +1,8 @@
 # Computer Vision Bionic Hand
 
 A real-time prosthetic hand that mirrors your finger movements using computer vision. A webcam tracks your hand with MediaPipe, maps each finger's curl angle to a servo, and streams those angles to an ESP32 over USB — all at up to 30 Hz.
+<img width="754" height="544" alt="image" src="https://github.com/user-attachments/assets/1109187b-d5fc-4e3d-9f74-d5dac1d99240" />
 
-<!-- [INSERT FINAL BUILD PHOTO HERE — front or 3/4 view of the completed hand] -->
-
----
-
-## Demo
-
-<!-- [INSERT GIF OR VIDEO CLIP HERE — hand in front of camera with the bionic hand mimicking it in real time] -->
-
----
 
 ## How It Works
 
