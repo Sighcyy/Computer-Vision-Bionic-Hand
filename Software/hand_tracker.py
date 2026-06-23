@@ -1,16 +1,3 @@
-"""
-hand_tracker.py  –  PC side
-Tracks hand landmarks with MediaPipe, maps finger curl to servo angles,
-and streams them to the ESP32 over a serial (USB) connection.
-
-Dependencies:
-    pip install opencv-python mediapipe pyserial
-
-Usage:
-    python hand_tracker.py --port COM3        # Windows
-    python hand_tracker.py --port /dev/ttyUSB0  # Linux / Mac
-"""
-
 import cv2
 import mediapipe as mp
 import serial
@@ -18,17 +5,15 @@ import time
 import argparse
 import math
 
-# ── Config ──────────────────────────────────────────────────────────────────
 BAUD_RATE    = 115200
-SEND_HZ      = 30          # how often we push data (frames per second cap)
-SERVO_MIN    = 0           # degrees
-SERVO_MAX    = 180         # degrees
+SEND_HZ      = 30         
+SERVO_MIN    = 0          
+SERVO_MAX    = 180         
 
-# Which finger maps to which servo index (M1-M5)
-# Order: Thumb, Index, Middle, Ring, Pinky
-FINGER_TO_SERVO = [0, 1, 2, 3, 4]   # M1=Thumb … M5=Pinky
 
-# MediaPipe landmark indices for each finger's MCP and TIP
+FINGER_TO_SERVO = [0, 1, 2, 3, 4]   
+
+
 FINGER_LANDMARKS = [
     (mp.solutions.hands.HandLandmark.THUMB_CMC,  mp.solutions.hands.HandLandmark.THUMB_TIP),
     (mp.solutions.hands.HandLandmark.INDEX_FINGER_MCP,  mp.solutions.hands.HandLandmark.INDEX_FINGER_TIP),
@@ -37,7 +22,6 @@ FINGER_LANDMARKS = [
     (mp.solutions.hands.HandLandmark.PINKY_MCP,         mp.solutions.hands.HandLandmark.PINKY_TIP),
 ]
 
-# Pip landmarks used to gauge curl depth
 FINGER_PIP = [
     mp.solutions.hands.HandLandmark.THUMB_IP,
     mp.solutions.hands.HandLandmark.INDEX_FINGER_PIP,
@@ -46,18 +30,12 @@ FINGER_PIP = [
     mp.solutions.hands.HandLandmark.PINKY_PIP,
 ]
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+
 def dist(a, b):
     return math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2 + (a.z - b.z)**2)
 
 
 def finger_curl_angle(lm, mcp_id, pip_id, tip_id):
-    """
-    Returns an angle 0-180 representing how curled the finger is.
-    0   = fully open / extended
-    180 = fully closed / curled
-    Uses the ratio of TIP-to-MCP distance vs PIP-to-MCP distance.
-    """
     mcp = lm[mcp_id]
     pip = lm[pip_id]
     tip = lm[tip_id]
@@ -68,19 +46,16 @@ def finger_curl_angle(lm, mcp_id, pip_id, tip_id):
     if mcp_to_pip < 1e-6:
         return 90
 
-    # When extended, tip is ~2x pip distance; when curled, closer to 1x
+
     ratio = mcp_to_tip / (2.0 * mcp_to_pip)
-    ratio = max(0.0, min(1.0, ratio))        # clamp 0-1
-    angle = int((1.0 - ratio) * SERVO_MAX)   # invert: curled = high angle
+    ratio = max(0.0, min(1.0, ratio))       
+    angle = int((1.0 - ratio) * SERVO_MAX)   
     return angle
 
 
 def build_packet(angles):
-    """Format: A<t>,<i>,<m>,<r>,<p>\n  (Thumb,Index,Middle,Ring,Pinky)"""
     return "A" + ",".join(str(a) for a in angles) + "\n"
 
-
-# ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", default="COM3", help="Serial port for ESP32")
@@ -123,7 +98,7 @@ def main():
         rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         res   = hands_det.process(rgb)
 
-        angles = [90, 90, 90, 90, 90]   # default: mid-position
+        angles = [90, 90, 90, 90, 90] 
 
         if res.multi_hand_landmarks:
             lm = res.multi_hand_landmarks[0].landmark
@@ -134,7 +109,6 @@ def main():
                 pip_id = FINGER_PIP[i]
                 angles[i] = finger_curl_angle(lm, mcp_id, pip_id, tip_id)
 
-        # Display angles on frame
         labels = ["Thumb", "Index", "Middle", "Ring", "Pinky"]
         for i, (label, angle) in enumerate(zip(labels, angles)):
             cv2.putText(frame, f"{label}: {angle}°",
@@ -143,7 +117,7 @@ def main():
 
         cv2.imshow("Hand Tracker – Bionic Arm", frame)
 
-        # Rate-limit serial writes
+   
         now = time.time()
         if now - prev_time >= frame_delay:
             packet = build_packet(angles)
