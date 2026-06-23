@@ -1,1 +1,1 @@
-# EMG-Biomechanical-Prosthetic
+# Computer-Vision-Prosthetic-Hand
