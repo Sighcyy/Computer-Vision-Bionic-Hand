@@ -180,8 +180,4 @@ See [`References.md`](References.md) for finger dimension sources and design not
 - Wrist rotation as a 6th axis
 - Gesture macros to lock preset hand positions
 
----
 
-## License
-
-MIT License. Build on it, improve it, share it.
